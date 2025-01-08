@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import random
 from typing import Literal, Optional
+
 from src.market import Market
 from src.utils import Action, operation_sign
 

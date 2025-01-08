@@ -1,10 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, Float, String, ForeignKey, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 from sqlalchemy.engine import Engine
 
 
