@@ -1,79 +1,107 @@
-# Test cases
+import pytest
+from unittest.mock import MagicMock
+from src.market import Market
+from src.agent import RandomAgent, TrendAgent, CustomAgent
+
 @pytest.fixture
-def setup_market():
-    market = Market(initial_price=200.00, stock=100)
-    agent1 = RandomAgent("Agent1")
-    agent2 = TrendFollowingAgent("Agent2")
-    agent3 = CounterTrendAgent("Agent3")
-    agent4 = CustomAgent("Agent4")
-
-    market.add_agent(agent1)
-    market.add_agent(agent2)
-    market.add_agent(agent3)
-    market.add_agent(agent4)
-
+def mock_market():
+    """Provides a mock Market instance."""
+    market = MagicMock(spec=Market)
+    market.price = 100.0
+    market.last_iterarion_price = 95.0
+    market.stock = 50
+    market.iteration = 0
+    market.market_iteration_limit = 1000
+    market.execute_action.return_value = True
+    
     return market
 
-def test_initial_conditions(setup_market):
-    market = setup_market
-    assert market.price == 200.00
-    assert market.stock == 100
-    assert len(market.agents) == 4
+@pytest.fixture
+def random_agent():
+    """Provides a RandomAgent instance."""
+    return RandomAgent(name="RandomAgent", balance=1000.0)
 
-def test_random_agent_buy(setup_market):
-    market = setup_market
-    agent = RandomAgent("TestAgent", balance=300)
-    market.add_agent(agent)
+@pytest.fixture
+def trend_agent():
+    """Provides a TrendAgent instance."""
+    return TrendAgent(name="TrendAgent", balance=1000.0, trend_direction=1)
 
-    agent.act(market)
-    assert (agent.graphics_cards > 0 and agent.balance < 300) or (agent.graphics_cards == 0)
+@pytest.fixture
+def custom_agent():
+    """Provides a CustomAgent instance."""
+    agent = CustomAgent(name="CustomAgent", balance=1000.0)
+    agent.position = 50
+    return agent
 
-def test_trend_following_agent_act(setup_market):
-    market = setup_market
-    agent = TrendFollowingAgent("TestTrend", balance=300)
-    market.add_agent(agent)
+def test_random_agent_act(mock_market, random_agent):
+    """Test the RandomAgent act method performs an action without error."""
+    random_agent.act(mock_market)
+    assert random_agent.balance <= 1000.0 
 
-    market.price = 202.00
-    agent.last_price = 200.00
-    agent.act(market)
-    assert (agent.graphics_cards > 0 and agent.balance < 300) or (agent.graphics_cards == 0)
 
-def test_counter_trend_agent_act(setup_market):
-    market = setup_market
-    agent = CounterTrendAgent("TestCounter", balance=300)
-    market.add_agent(agent)
+def test_trend_agent_buy(mock_market, trend_agent):
+    """Test TrendAgent when market price is trending upwards."""
+    mock_market.last_iterarion_price = 90.0
+    trend_agent.act(mock_market)
+    assert trend_agent.balance <= 1000.0 
 
-    market.price = 198.00
-    agent.last_price = 200.00
-    agent.act(market)
-    assert (agent.graphics_cards > 0 and agent.balance < 300) or (agent.graphics_cards == 0)
 
-def test_custom_agent_act(setup_market):
-    market = setup_market
-    agent = CustomAgent("TestCustom", balance=300)
-    market.add_agent(agent)
+def test_trend_agent_sell(mock_market, trend_agent):
+    """Test TrendAgent when market price is trending downwards."""
+    mock_market.last_iterarion_price = 110.0
+    trend_agent.act(mock_market)
+    assert trend_agent.balance <= 1000.0 
 
-    market.price = 210.00
-    agent.act(market)
-    assert (agent.graphics_cards > 0 and agent.balance < 300) or (agent.graphics_cards == 0)
+# Custom Agent tests
 
-def test_run_iteration(setup_market, monkeypatch):
-    market = setup_market
+def test_custom_agent_sell_due_to_iteration(mock_market, custom_agent):
+    """Test CustomAgent SELL action when iteration matches graphics cards."""
+    custom_agent.graphics_cards = 1
+    mock_market.iteration = 999
 
-    # Mock database session methods
-    market.session.bulk_save_objects = MagicMock()
-    market.session.commit = MagicMock()
+    custom_agent.act(mock_market)
+    assert custom_agent.graphics_cards == 0
 
-    # Run one iteration
-    market.run_iteration()
+def test_custom_agent_hold_due_to_iteration(mock_market, custom_agent):
+    """Test CustomAgent HOLD action when iteration is graphics_cards + 1."""
+    custom_agent.graphics_cards = 1
+    mock_market.iteration = 998
 
-    # Verify database interactions
-    market.session.bulk_save_objects.assert_called()
-    market.session.commit.assert_called()
+    custom_agent.act(mock_market)
+    assert custom_agent.graphics_cards == 1
 
-    # Verify changes in iteration count
-    assert market.iteration == 1
+def test_custom_agent_buy_due_to_price_trend(mock_market, custom_agent):
+    """Test CustomAgent BUY action when price trends favor buying."""
+    custom_agent.position = 100
+    custom_agent.balance = 1000.0
+    mock_market.price = 120.0
+    mock_market.last_iterarion_price = 100.0
+    mock_market.iteration = 50
 
-    # Verify market changes and transactions are cleared
-    assert len(market.market_changes) == 0
-    assert len(market.transactions) == 0
+    custom_agent.act(mock_market)
+    assert custom_agent.graphics_cards == 1
+    assert custom_agent.balance < 1000.0 
+
+def test_custom_agent_sell_due_to_price_trend(mock_market, custom_agent):
+    """Test CustomAgent SELL action when price trends favor selling."""
+    custom_agent.position = 99
+    custom_agent.graphics_cards = 1
+    mock_market.price = 90.0
+    mock_market.last_iterarion_price = 100.0
+
+    custom_agent.act(mock_market)
+    assert custom_agent.graphics_cards == 0
+    assert custom_agent.balance >= 90 
+
+def test_custom_agent_buy_in_early_iteration(mock_market, custom_agent):
+    """Test CustomAgent BUY action in early iterations."""
+    mock_market.price = 100.0
+    mock_market.last_iterarion_price = 100.0
+    custom_agent.position = 100
+    mock_market.iteration = 2
+    custom_agent.graphics_cards = 0
+    custom_agent.balance = 1000
+
+    custom_agent.act(mock_market)
+    assert custom_agent.graphics_cards == 1
+    assert custom_agent.balance < 1000.0 
