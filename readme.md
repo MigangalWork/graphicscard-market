@@ -1,4 +1,4 @@
-# Mercado Tarjetas
+# Graphics Card Market Simulator
 
 A simulation of a GPU market with economic agents.
 
@@ -12,7 +12,7 @@ A simulation of a GPU market with economic agents.
 
 ## Introduction
 
-This project simulates a GPU market, modeling interactions between economic agents. It uses Python and SQLAlchemy to manage data and processes.
+This project offers a comprehensive simulation of a GPU market by modeling the interactions between various economic agents. Implemented in Python, the project follows SOLID principles and utilizes a class-oriented design, incorporating basic testing and best software engineering practices. The system is underpinned by an SQLite database, and the inclusion of a workflow schema, docstrings, and a pyproject.toml configuration enhances maintainability. While intended as a technical test rather than a real-world application, this repository aims to exemplify industry-standard coding principles and Python-based application development.
 
 ## Requirements
 
@@ -70,3 +70,9 @@ To run the test suite, ensure `pytest` is installed and execute:
 ```bash
 pytest
 ```
+
+## Basic schema
+
+This schema provides a simplified overview of the project's structure, offering a quick and clear understanding of the workflow and core architecture.
+
+![Schema](docs/schema.jpg)
