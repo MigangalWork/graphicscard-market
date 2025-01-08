@@ -60,12 +60,12 @@ python -m pip install .[dev]
 After installation, you can run the simulation using:
 
 ```bash
-python -m mercado_tarjetas
+python -m main
 ```
 
 ## Testing
 
-To run the test suite, ensure pytest is installed and execute:
+To run the test suite, ensure `pytest` is installed and execute:
 
 ```bash
 pytest
